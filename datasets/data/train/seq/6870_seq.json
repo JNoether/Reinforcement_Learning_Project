@@ -1,0 +1,3 @@
+{
+  "sequence": ["move", "move", "turnRight", "pickMarker", "move", "move", "finish"]
+}
