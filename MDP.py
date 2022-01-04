@@ -86,6 +86,116 @@ class MDP:
 
             self.matrix = mat
             self.print_grid()
+    
 
-        
-MDP("data_easy", name = "4000")
+    def marker_on_pos(self, pos):
+        return self.matrix[pos] in set(range(5,9))
+
+    
+    def get_change_in_direction(self):
+        return {
+            1 : (0,-1),
+            2 : (1,0),
+            3 : (0,1),
+            4 : (-1,0),
+            5 : (0,-1),
+            6 : (1,0),
+            7 : (0,1),
+            8 : (-1,0)
+        }.get(self.matrix[(0,*self.agentPosition)])
+
+    def hit_wall(self, pos):
+        return self.matrix[pos] == 10
+
+    def out_of_bounds(self, pos):
+        x, y = pos[1:3]
+        return x < 0 or x > self.matrix.shape[1] or y < 0 or y > self.matrix.shape[2]
+
+    ################################################
+    #   Reward Function                            #
+    ################################################
+
+    def reward(self, action):
+        if action in {"move", "turnRight", "turnLeft"}:
+            return 0
+
+        if action == "pickMarker":
+            # marker on agents position
+            if self.marker_on_pos((0,*self.agentPosition)) and not self.marker_on_pos((1,*self.agentPosition)):
+                return 1
+            else:
+                return -1
+
+        if action == "putMarker":
+            if not self.marker_on_pos((0,*self.agentPosition)) and self.marker_on_pos((1, *self.agentPosition)):
+                return 1
+            else:
+                return -1
+
+        if action == "finish":
+            if np.array_equal(self.matrix[0], self.matrix[1]):
+                return 10
+            else:
+                return -10
+
+    #################################################
+    #   Transition Dynamics                         #
+    #################################################
+    
+    def get_next_state(self, action):
+        AP = (0, *self.agentPosition)
+        if action == "move":
+
+            # save S_curr_Ap 
+            newij = self.matrix[(0,*self.agentPosition)]
+            newAP = 0
+
+            ij = (0,*(np.array(self.agentPosition) + np.array(self.get_change_in_direction())))
+
+            #check crash
+            if self.hit_wall(ij) or self.out_of_bounds(ij):
+                return "Terminal"
+
+            # check markers
+            if self.marker_on_pos(AP):
+                newAP = 9
+                if not self.marker_on_pos(ij):
+                    newij -= 4
+            else:
+                if self.marker_on_pos(ij):
+                    newij += 4
+
+            # change current position
+            self.matrix[AP] = newAP
+            
+            # move agent to next position
+            self.matrix[ij] = newij 
+
+            self.agentPosition = ij[1:3]
+
+        if action == "turnLeft":
+            self.matrix[AP] = (self.matrix[AP]) % 4 + 1 + self.marker_on_pos(AP) * 4
+
+        if action == "turnRight":
+            self.matrix[AP] = (self.matrix[AP] -2 ) % 4 + 1 + self.marker_on_pos(AP) * 4
+
+        if action == "pickMarker":
+            if self.marker_on_pos(AP):
+                self.matrix[AP] -= 4
+            else:
+                return "Terminal"
+
+        if action == "putMarker":
+            if self.marker_on_pos(AP):
+                return "Terminal"
+            else:
+                self.matrix[AP] += 4
+
+        if action == "finish":
+            return "Terminal"
+
+
+test = MDP("data_easy", name = "0")
+print(test.get_next_state("putMarker"))
+test.get_next_state("pickMarker")
+test.print_grid()
