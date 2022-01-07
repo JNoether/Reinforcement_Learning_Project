@@ -8,7 +8,6 @@ if __name__ == "__main__":
     dname = os.path.dirname(abspath)
     os.chdir(dname)
 
-
 class MDP:
     """
     mat : np.array, tensor consisting of the current state and postgrid as a 4X4 matrix
@@ -32,6 +31,10 @@ class MDP:
     ##################################
     #   Helper Functions             #
     ##################################
+    def get_current_state(self):
+        return self.matrix
+
+
     def print_grid(self):
         symbols = {0 : ".", 
                     1: "<",
@@ -56,7 +59,6 @@ class MDP:
         """
         with open(path) as file:
             grid = json.load(file)
-            print(grid)
             # create matrix 
             mat = np.zeros(shape= (2, grid["gridsz_num_rows"], grid["gridsz_num_cols"]))
             
@@ -85,11 +87,10 @@ class MDP:
                     mat[(1, *marker)]
 
             self.matrix = mat
-            self.print_grid()
     
 
     def marker_on_pos(self, pos):
-        return self.matrix[pos] in set(range(5,9))
+        return self.matrix[pos] in set(range(5,10))
 
     
     def get_change_in_direction(self):
@@ -109,7 +110,7 @@ class MDP:
 
     def out_of_bounds(self, pos):
         x, y = pos[1:3]
-        return x < 0 or x > self.matrix.shape[1] or y < 0 or y > self.matrix.shape[2]
+        return x < 0 or x >= self.matrix.shape[1] or y < 0 or y >= self.matrix.shape[2]
 
     ################################################
     #   Reward Function                            #
@@ -153,7 +154,7 @@ class MDP:
             ij = (0,*(np.array(self.agentPosition) + np.array(self.get_change_in_direction())))
 
             #check crash
-            if self.hit_wall(ij) or self.out_of_bounds(ij):
+            if self.out_of_bounds(ij) or self.hit_wall(ij):
                 return "Terminal"
 
             # check markers
@@ -193,9 +194,3 @@ class MDP:
 
         if action == "finish":
             return "Terminal"
-
-
-test = MDP("data_easy", name = "0")
-print(test.get_next_state("putMarker"))
-test.get_next_state("pickMarker")
-test.print_grid()
