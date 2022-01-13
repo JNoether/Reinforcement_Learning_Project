@@ -8,6 +8,8 @@ if __name__ == "__main__":
     dname = os.path.dirname(abspath)
     os.chdir(dname)
 
+    
+
 class MDP:
     """
     mat : np.array, tensor consisting of the current state and postgrid as a 4X4 matrix
@@ -16,7 +18,7 @@ class MDP:
     """
     gamma = 0.5
 
-    def __init__(self, dir = "data", type = "train", name = "0"):
+    def __init__(self, dir = "data", type = "train", name = "0", lambda1 = 0.01, lambda2 = 0.1, lambda3 = 1):
         """
         dir : string
             data, data_easy or data_medium : the directory the task is located in
@@ -27,10 +29,15 @@ class MDP:
         """
         path = os.sep.join(["datasets", dir, type, "task", name + "_task.json"])
         self.parse_json(path)
+        self.lambda1, self.lambda2, self.lambda3 = lambda1, lambda2, lambda3
+        self.lastManDist = self.sum_of_goals()
 
     ##################################
     #   Helper Functions             #
     ##################################
+    def task_solved(self):
+        return np.array_equal(*self.matrix)
+
     def get_current_state(self):
         return self.matrix
 
@@ -63,8 +70,9 @@ class MDP:
             mat = np.zeros(shape= (2, grid["gridsz_num_rows"], grid["gridsz_num_cols"]))
             
             # add walls
-            mat[0][tuple(np.array(grid["walls"]).T)] = 10
-            mat[1][tuple(np.array(grid["walls"]).T)] = 10
+            if grid["walls"]:
+                mat[0][tuple(np.array(grid["walls"]).T)] = 10
+                mat[1][tuple(np.array(grid["walls"]).T)] = 10
             
             # add agent
             directions = {"west" : 1, "south" : 2, "east" : 3, "north" : 4}
@@ -112,38 +120,65 @@ class MDP:
         x, y = pos[1:3]
         return x < 0 or x >= self.matrix.shape[1] or y < 0 or y >= self.matrix.shape[2]
 
+    def sum_of_goals(self):
+        # compare post and pre grid except on the agents positions for change, as these are the goals
+        change = self.matrix[0] != self.matrix[1]
+        change[self.agentPosition] = False
+        # get matrix of indices
+        indxs = np.indices(change.shape)
+        indxs = np.dstack((*indxs,))
+
+        #get manhattan distance of every coordinate
+        manDist = indxs - self.agentPosition
+        manDist = np.sum(np.abs(manDist), axis = 2) * change
+
+        return np.sum(manDist)
+        
+
     ################################################
     #   Reward Function                            #
     ################################################
 
     def reward(self, action):
-        if action in {"move", "turnRight", "turnLeft"}:
+        if action in {"turnRight", "turnLeft"}:
             return 0
+
+        if action == "move":
+            newManDist = self.sum_of_goals()
+            if newManDist > self.lastManDist:
+                i = -1
+            else:
+                i = 1
+            self.lastManDist = newManDist
+            return i * self.lambda1
 
         if action == "pickMarker":
             # marker on agents position
-            if self.marker_on_pos((0,*self.agentPosition)) and not self.marker_on_pos((1,*self.agentPosition)):
-                return 1
+            if self.marker_on_pos((0,*self.agentPosition)) and (not self.marker_on_pos((1,*self.agentPosition))):
+                return self.lambda2
             else:
-                return -1
+                return -self.lambda2
 
         if action == "putMarker":
-            if not self.marker_on_pos((0,*self.agentPosition)) and self.marker_on_pos((1, *self.agentPosition)):
-                return 1
+            if (not self.marker_on_pos((0,*self.agentPosition))) and self.marker_on_pos((1, *self.agentPosition)):
+                return self.lambda2
             else:
-                return -1
+                return -self.lambda2
 
         if action == "finish":
             if np.array_equal(self.matrix[0], self.matrix[1]):
-                return 10
+                return self.lambda3
             else:
-                return -10
+                return -self.lambda3
 
     #################################################
     #   Transition Dynamics                         #
     #################################################
     
     def get_next_state(self, action):
+        """
+        NOTE: Do not call this function to get the next state, use the reward function instead, as this function could cause bugs in the reward if called alone, don't let it be lonely :(
+        """
         AP = (0, *self.agentPosition)
         if action == "move":
 
@@ -194,3 +229,15 @@ class MDP:
 
         if action == "finish":
             return "Terminal"
+
+
+    def sample_next_state_and_reward(self, action):
+        # when move is action, the next state is important, else, the current one is
+        if action == "move":
+            done = self.get_next_state(action) == "Terminal"
+            return self.get_current_state(), self.reward(action),  done, {}
+
+        else:
+            rew = self.reward(action)
+            done = self.get_next_state(action) == "Terminal"
+            return self.get_current_state(), rew, done, {}
