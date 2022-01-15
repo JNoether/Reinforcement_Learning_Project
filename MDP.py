@@ -240,3 +240,28 @@ class MDP:
             rew = self.reward(action)
             done = self.get_next_state(action) == "Terminal"
             return self.get_current_state(), rew, done, {}
+
+    def action_mask(self):
+        mask = np.zeros(6)
+
+        #turn left and right is always alowed
+        mask[1:3] = 1
+
+        #move
+        nextPos = (0, *(np.array(self.agentPosition) + np.array(self.get_change_in_direction())))
+        if not self.out_of_bounds(nextPos) and not self.hit_wall(nextPos):
+            mask[0] = 1
+
+        #pick marker
+        if self.marker_on_pos((0, *self.agentPosition)):
+            mask[3] = 1
+        
+        # put marker
+        mask[4] = not mask[4]
+
+        if np.array_equal(self.matrix[0], self.matrix[1]):
+            mask[5] = 1
+
+        return mask
+
+
