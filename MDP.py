@@ -236,7 +236,6 @@ class MDP:
         if action == "move":
             done = self.get_next_state(action) == "Terminal"
             return self.get_current_state(), self.reward(action),  done, {}
-
         else:
             rew = self.reward(action)
             done = self.get_next_state(action) == "Terminal"
