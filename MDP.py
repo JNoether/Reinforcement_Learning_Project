@@ -146,7 +146,7 @@ class MDP:
         if action == "move":
             newManDist = self.sum_of_goals()
             if newManDist > self.lastManDist:
-                i = -1
+                i = -2
             else:
                 i = 1
             self.lastManDist = newManDist
@@ -157,19 +157,13 @@ class MDP:
             if self.marker_on_pos((0,*self.agentPosition)) and (not self.marker_on_pos((1,*self.agentPosition))):
                 return self.lambda2
             else:
-                return -self.lambda2
+                return -2*self.lambda2
 
         if action == "putMarker":
             if (not self.marker_on_pos((0,*self.agentPosition))) and self.marker_on_pos((1, *self.agentPosition)):
                 return self.lambda2
             else:
-                return -self.lambda2
-
-        if action == "finish":
-            if np.array_equal(self.matrix[0], self.matrix[1]):
-                return self.lambda3
-            else:
-                return -self.lambda3
+                return -2*self.lambda2
 
     #################################################
     #   Transition Dynamics                         #
@@ -227,17 +221,35 @@ class MDP:
             else:
                 self.matrix[AP] += 4
 
-        if action == "finish":
-            return "Terminal"
 
 
     def sample_next_state_and_reward(self, action):
         # when move is action, the next state is important, else, the current one is
         if action == "move":
-            done = self.get_next_state(action) == "Terminal"
-            return self.get_current_state(), self.reward(action),  done, {}
+            done = self.get_next_state(action) == "Terminal" or np.array_equal(self.matrix[0], self.matrix[1])
+            return self.get_current_state(), self.reward(action) + self.lambda3 * np.array_equal(self.matrix[0], self.matrix[1]),  done, {}
 
         else:
             rew = self.reward(action)
-            done = self.get_next_state(action) == "Terminal"
-            return self.get_current_state(), rew, done, {}
+            done = self.get_next_state(action) == "Terminal" or np.array_equal(self.matrix[0], self.matrix[1])
+            return self.get_current_state(), rew + self.lambda3 * np.array_equal(self.matrix[0], self.matrix[1]), done, {}
+
+    
+    def action_mask(self):
+        mask = np.zeros(5)
+
+        #turn left and right is always allowed
+        mask[1:3] = 1
+
+        # move is allowed if no wall in way or not out of bounds
+        nextPos =  (0,*(np.array(self.agentPosition) + np.array(self.get_change_in_direction())))
+        if not self.out_of_bounds(nextPos) and not self.hit_wall(nextPos):
+            mask[0] = 1
+        
+        #pick marker
+        if self.get_current_state()[(0, *self.agentPosition)] in {5,6,7,8}:
+            mask[3] = 1
+
+        mask[4] = not mask[3]
+
+        return mask
