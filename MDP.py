@@ -31,6 +31,9 @@ class MDP:
         self.parse_json(path)
         self.lambda1, self.lambda2, self.lambda3 = lambda1, lambda2, lambda3
         self.lastManDist = self.sum_of_goals()
+        self.goals = self.matrix[0] != self.matrix[1]
+        if not self.marker_on_pos((0,*self.agentPosition)) and not self.marker_on_pos((1, *self.agentPosition)):
+            self.goals[self.agentPosition] = False
 
     ##################################
     #   Helper Functions             #
@@ -153,14 +156,17 @@ class MDP:
             return i * self.lambda1
 
         if action == "pickMarker":
-            # marker on agents position
-            if self.marker_on_pos((0,*self.agentPosition)) and (not self.marker_on_pos((1,*self.agentPosition))):
+            # marker is a goal, can only be gotten once to avoid reward hacking
+            if self.goals[self.agentPosition] and self.marker_on_pos((0, *self.agentPosition)):
+                self.goals[self.agentPosition] = False
                 return self.lambda2
             else:
                 return -self.lambda2
 
         if action == "putMarker":
-            if (not self.marker_on_pos((0,*self.agentPosition))) and self.marker_on_pos((1, *self.agentPosition)):
+            # same as above
+            if self.goals[self.agentPosition] and not self.marker_on_pos((0, * self.agentPosition)):
+                self.goals[self.agentPosition] = 0
                 return self.lambda2
             else:
                 return -self.lambda2
