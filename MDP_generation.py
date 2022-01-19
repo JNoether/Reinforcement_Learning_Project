@@ -19,14 +19,13 @@ if __name__ == "__main__":
     # float to allow 1e6
     num_generations = int(float(sys.argv[1]))
     #probability that wall is placed
-    wall_prob = float(sys.argv[2])
-    #probability for all markers(placed/picked up)
-    marker_prob = float(sys.argv[3])
-
-    assert wall_prob > 0 and wall_prob < 1
+    mode = sys.argv[2]
 
     # used for file name
-    max_file = max([int(re.sub(r"\D", "", i)) for i in os.listdir("datasets/generated/train/task")])
+    try:
+        max_file = max([int(re.sub(r"\D", "", i)) for i in os.listdir(f"datasets/generated_{mode}/train/task")])
+    except:
+        max_file = 0
     for i in range(1,num_generations+1):
         #print progress
         if i % (num_generations/10) == 0:
@@ -35,29 +34,33 @@ if __name__ == "__main__":
         #json
         grid = {"gridsz_num_rows": 4, "gridsz_num_cols": 4}
 
-        #generate wall positions:
-        walls = set()
-        while np.random.rand() < wall_prob and len(walls) < 12:
-            wall_pos = random.randint(0, 3), random.randint(0, 3)
-            walls.add(wall_pos)
-        grid["walls"] = [list(x) for x in walls]
-
-        assert len(walls) < 16
-
         # agent post-grid position
         directions = ["east", "south", "west", "north"]
-        while True:
-            post_agent_x, post_agent_y, post_agent_dir = np.random.randint(0,3), np.random.randint(0,3), np.random.randint(0,3)
-            if (post_agent_x, post_agent_y) not in walls:
-                break
+        post_agent_x, post_agent_y, post_agent_dir = np.random.randint(0,3), np.random.randint(0,3), np.random.randint(0,3)
 
         grid["postgrid_agent_row"] = int(post_agent_x)
         grid["postgrid_agent_col"] = int(post_agent_y)
         grid["postgrid_agent_dir"] = directions[post_agent_dir]
 
+
+        #generate wall positions:
+        walls = set()
+        wall_prob = {"easy" : 0.6, "med" : 0.75, "hard": 0.85}.get(mode)
+        while np.random.rand() < wall_prob and len(walls) < 12:
+            wall_pos = random.randint(0, 3), random.randint(0, 3)
+            if wall_pos != (post_agent_x, post_agent_y):
+                walls.add(wall_pos)
+        
+        grid["walls"] = [list(x) for x in walls]
+
+        assert len(walls) < 16
+
+        
         #generate pregrid and postgrid markers
         markers = set()
-        while len(markers) < 3 and np.random.rand() < marker_prob:
+        marker_prob = {"easy" : 0.05, "med" : 0.1, "hard" : 0.15}.get(mode)
+        max_markers = {"easy": 1, "med": 2, "hard" : 3}.get(mode)
+        while len(markers) < max_markers and np.random.rand() < marker_prob:
             x, y = random.randint(0, 3), random.randint(0, 3)
             if (x,y) not in walls:
                 markers.add((x,y))
@@ -68,8 +71,12 @@ if __name__ == "__main__":
 
         agentPos = np.array([post_agent_x, post_agent_y])
         preMarkers = markers.copy()
-        episodes = np.random.choice([2,3,4,5,6,7], p = [0.15, 0.2, 0.2, 0.3, 0.1, 0.05])
-        for j in range(episodes):
+        postMarkers = markers.copy()
+        lengths= {"easy" : [1,2,3,4], "med" : [2, 3, 4, 5], "hard" : [4, 5, 6, 7]}.get(mode)
+        episodes = np.random.choice(lengths, p = [0.2, 0.3, 0.3, 0.2])
+        j = 0
+        while j < episodes:
+            j += 1
             newPos = agentPos - changeInDirection[post_agent_dir]
             newPos = (int(newPos[0]), int(newPos[1]))
             if newPos in walls or out_of_bounds(newPos):
@@ -99,8 +106,8 @@ if __name__ == "__main__":
 
         grid["pregrid_markers"] = [list(x) for x in preMarkers]
         grid["postgrid_markers"] = [list(x) for x in markers]
-
-        with open(f"datasets/generated/train/task/{max_file + i}_task.json", "w+") as file:
+        
+        with open(f"datasets/generated_{mode}/train/task/{max_file + i}_task.json", "w+") as file:
             json.dump(grid, file)
         
     print("done")
