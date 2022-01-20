@@ -35,6 +35,9 @@ class MDP:
         if not self.marker_on_pos((0,*self.agentPosition)) and not self.marker_on_pos((1, *self.agentPosition)):
             self.goals[self.agentPosition] = False
 
+        self.visited = np.zeros(self.goals.shape)
+        self.visited[self.agentPosition] = 1
+
     ##################################
     #   Helper Functions             #
     ##################################
@@ -148,10 +151,10 @@ class MDP:
 
         if action == "move":
             newManDist = self.sum_of_goals()
-            if newManDist > self.lastManDist:
-                i = -1
-            else:
+            if newManDist < self.lastManDist:
                 i = 1
+            else:
+                i = -1
             self.lastManDist = newManDist
             return i * self.lambda1
 
@@ -263,7 +266,8 @@ class MDP:
             mask[3] = 1
         
         # put marker
-        mask[4] = not mask[3]
+        if not self.marker_on_pos((0, *self.agentPosition)):
+            mask[4] = 1
 
         if np.array_equal(self.matrix[0], self.matrix[1]):
             mask[5] = 1
