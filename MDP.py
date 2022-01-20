@@ -161,7 +161,7 @@ class MDP:
                 self.goals[self.agentPosition] = False
                 return self.lambda2
             else:
-                return -self.lambda2
+                return 0
 
         if action == "putMarker":
             # same as above
@@ -169,7 +169,7 @@ class MDP:
                 self.goals[self.agentPosition] = 0
                 return self.lambda2
             else:
-                return -self.lambda2
+                return 0
 
         if action == "finish":
             if np.array_equal(self.matrix[0], self.matrix[1]):
@@ -263,7 +263,7 @@ class MDP:
             mask[3] = 1
         
         # put marker
-        mask[4] = not mask[4]
+        mask[4] = not mask[3]
 
         if np.array_equal(self.matrix[0], self.matrix[1]):
             mask[5] = 1
