@@ -263,12 +263,12 @@ class MDP:
             mask[0] = 1
 
         #pick marker
-        if self.marker_on_pos((0, *self.agentPosition)):
-            mask[3] = 1
+        if self.marker_on_pos((0, *self.agentPosition)) and self.goals[self.agentPosition]:
+            return np.array([0,0,0,1,0,0])
         
         # put marker
-        if not self.marker_on_pos((0, *self.agentPosition)):
-            mask[4] = 1
+        if not self.marker_on_pos((0, *self.agentPosition)) and self.goals[self.agentPosition]:
+            return np.array([0,0,0,0,1,0])
 
         if np.array_equal(self.matrix[0], self.matrix[1]):
             mask[5] = 1
