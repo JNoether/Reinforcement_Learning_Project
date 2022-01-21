@@ -35,6 +35,15 @@ class MDP:
         if not self.marker_on_pos((0,*self.agentPosition)) and not self.marker_on_pos((1, *self.agentPosition)):
             self.goals[self.agentPosition] = False
 
+
+        self.marker_goals = np.zeros((4,4))
+        for i in range(2):
+            for row in range(4):
+                for col in range(4):
+                    if self.marker_on_pos((i, row, col)):
+                        self.marker_goals[row,col] = self.goals[row,col]
+        
+
         self.visited = np.zeros(self.goals.shape)
         self.visited[self.agentPosition] = 1
 
@@ -150,6 +159,9 @@ class MDP:
             return 0
 
         if action == "move":
+            if self.out_of_bounds((0, *self.agentPosition)) or self.hit_wall((0, *self.agentPosition)):
+                return -self.lambda3
+
             newManDist = self.sum_of_goals()
             if newManDist < self.lastManDist and not self.visited[self.agentPosition]:
                 i = 1
@@ -161,19 +173,25 @@ class MDP:
 
         if action == "pickMarker":
             # marker is a goal, can only be gotten once to avoid reward hacking
-            if self.goals[self.agentPosition] and self.marker_on_pos((0, *self.agentPosition)):
+            if self.marker_goals[self.agentPosition] and self.marker_on_pos((0, *self.agentPosition)):
                 self.goals[self.agentPosition] = False
+                self.marker_goals[self.agentPosition] = False
                 return self.lambda2
+            elif self.marker_on_pos((0, *self.agentPosition)):
+                return -self.lambda2
             else:
-                return 0
+                return -self.lambda3
 
         if action == "putMarker":
             # same as above
-            if self.goals[self.agentPosition] and not self.marker_on_pos((0, * self.agentPosition)):
+            if self.marker_goals[self.agentPosition] and not self.marker_on_pos((0, *self.agentPosition)):
                 self.goals[self.agentPosition] = 0
+                self.marker_goals[self.agentPosition] = 0
                 return self.lambda2
+            elif not self.marker_on_pos((0, * self.agentPosition)):
+                return -self.lambda2
             else:
-                return 0
+                return -self.lambda3
 
         if action == "finish":
             if np.array_equal(self.matrix[0], self.matrix[1]):
@@ -245,6 +263,8 @@ class MDP:
         # when move is action, the next state is important, else, the current one is
         if action == "move":
             done = self.get_next_state(action) == "Terminal"
+            if done:
+                return self.get_current_state(), -self.lambda3,  done, {}
             return self.get_current_state(), self.reward(action),  done, {}
         else:
             rew = self.reward(action)
@@ -263,11 +283,11 @@ class MDP:
             mask[0] = 1
 
         #pick marker
-        if self.marker_on_pos((0, *self.agentPosition)) and self.goals[self.agentPosition]:
+        if self.marker_on_pos((0, *self.agentPosition)) and self.marker_goals[self.agentPosition]:
             return np.array([0,0,0,1,0,0])
         
         # put marker
-        if not self.marker_on_pos((0, *self.agentPosition)) and self.goals[self.agentPosition]:
+        if not self.marker_on_pos((0, *self.agentPosition)) and self.marker_goals[self.agentPosition]:
             return np.array([0,0,0,0,1,0])
 
         if np.array_equal(self.matrix[0], self.matrix[1]):
