@@ -151,10 +151,11 @@ class MDP:
 
         if action == "move":
             newManDist = self.sum_of_goals()
-            if newManDist < self.lastManDist:
+            if newManDist < self.lastManDist and not self.visited[self.agentPosition]:
                 i = 1
             else:
                 i = -1
+            self.visited[self.agentPosition] = 1
             self.lastManDist = newManDist
             return i * self.lambda1
 
