@@ -107,7 +107,7 @@ class MDP:
                 if mat[(1, *marker)] == 0:
                     mat[(1, *marker)] = 9
                 else:
-                    mat[(1, *marker)]
+                    mat[(1, *marker)] += 4
 
             self.matrix = mat
     
