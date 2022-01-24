@@ -156,7 +156,7 @@ class MDP:
 
     def reward(self, action):
         if action in {"turnRight", "turnLeft"}:
-            return 0
+            return -self.lambda1
 
         if action == "move":
             if self.out_of_bounds((0, *self.agentPosition)) or self.hit_wall((0, *self.agentPosition)):
@@ -283,11 +283,11 @@ class MDP:
             mask[0] = 1
 
         #pick marker
-        if self.marker_on_pos((0, *self.agentPosition)) and self.marker_goals[self.agentPosition]:
+        if self.marker_on_pos((0, *self.agentPosition)):# and self.marker_goals[self.agentPosition]:
             mask[3] = 1
         
         # put marker
-        if not self.marker_on_pos((0, *self.agentPosition)) and self.marker_goals[self.agentPosition]:
+        if not self.marker_on_pos((0, *self.agentPosition)):# and self.marker_goals[self.agentPosition]:
             mask[4] = 1
 
         if np.array_equal(self.matrix[0], self.matrix[1]):
