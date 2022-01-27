@@ -269,6 +269,7 @@ class MDP:
         else:
             rew = self.reward(action)
             done = self.get_next_state(action) == "Terminal"
+            self.lastManDist = self.sum_of_goals()
             return self.get_current_state(), rew, done, {}
 
     def action_mask(self):
