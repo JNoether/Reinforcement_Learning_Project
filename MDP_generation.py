@@ -11,6 +11,11 @@ def out_of_bounds(agent_pos):
     return x < 0 or x >= 4 or y < 0 or y >= 4
 
 if __name__ == "__main__":
+    """
+    This script generates additional MDPs. The following command line arguments are required:
+    - number of MDPs to generate
+    - mode of MDP: easy, medium, hard, imitation(also generates seq)
+    """
     abspath = os.path.abspath(__file__)
     dname = os.path.dirname(abspath)
     os.chdir(dname)

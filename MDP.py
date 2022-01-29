@@ -15,6 +15,9 @@ class MDP:
     mat : np.array, tensor consisting of the current state and postgrid as a 4X4 matrix
     agentPosition : int tuple, the current position of the agent in the current state
     gamma : discount factor
+    lambda1 : reward for decreasing manhattan distance
+    lambda2 : reward for picking up/ putting down a right marker
+    lambda3 : reward for finishing a task
     """
     gamma = 0.5
 
